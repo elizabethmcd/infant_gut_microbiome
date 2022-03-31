@@ -2,9 +2,12 @@
 title: "Infant Gut Microbiome Project Notebook"
 author: "Elizabeth McDaniel"
 date: '2022-03-31'
-output: 
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
-    toc: true
+    toc: yes
     toc_depth: 3
 ---
 
@@ -184,4 +187,5 @@ The correct and accurate analysis for this set of contigs would be to run GTDB-t
 ## Read Coverage Inspection 
 
 ## Functional Annotation
-Since the anvi'o pipeline already annotated ORFs with prodigal, we can export the proteins with `anvi-get-sequences-for-gene-calls -c contigs.db --get-aa-sequences -o infant-gut-proteins.faa` and then annotate using the KofamKOALA pipeline. This will annotate all proteins based on the KEGG database, from which I will then identify transposon families to investigate further, along with the gene neighborhoods/regions in which transposons are located. 
+
+Since the anvi'o pipeline already annotated ORFs with prodigal, we can export the proteins with `anvi-get-sequences-for-gene-calls -c contigs.db --get-aa-sequences -o infant-gut-proteins.faa` and then annotate using the KofamKOALA pipeline. This will annotate all proteins based on the KEGG database, from which I will then identify transposon families to investigate further, along with the gene neighborhoods/regions in which transposons are located. Since the KofamKOALA online portal only takes 10,000 proteins for a single job, I split the FASTA file into two containing each about 8,500 proteins for all genomes. The KofamKOALA pipeline can also be run on a personal laptop but the database is quite large and requires more threads, and can also be installed on a larger compute cluster for annotation searches. 

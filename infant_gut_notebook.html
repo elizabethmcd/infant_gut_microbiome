@@ -621,7 +621,10 @@ for a quick spot check this analysis will suffice.</p>
 <p>Since the anvi’o pipeline already annotated ORFs with prodigal, we
 can export the proteins with
 <code>anvi-get-sequences-for-gene-calls -c contigs.db --get-aa-sequences -o infant-gut-proteins.faa</code>
-and then annotate using the KofamKOALA pipeline.</p>
+and then annotate using the KofamKOALA pipeline. This will annotate all
+proteins based on the KEGG database, from which I will then identify
+transposon families to investigate further, along with the gene
+neighborhoods/regions in which transposons are located.</p>
 </div>
 </div>
 
