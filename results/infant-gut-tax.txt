@@ -1,0 +1,6 @@
+scg_name	percent_identity	t_domain	t_phylum	t_class	t_order	t_family	t_genus	t_species
+Ribosomal_L2_3113	99.6	Bacteria	Firmicutes	Clostridia	Peptostreptococcales	Peptostreptococcaceae	Clostridioides	Clostridioides difficile
+Ribosomal_L2_14412	98.5	Bacteria	Proteobacteria	Gammaproteobacteria	Enterobacterales	Enterobacteriaceae	None	None
+Ribosomal_L2_792	98.9	Bacteria	Bacteroidota	Bacteroidia	Bacteroidales	Bacteroidaceae	Phocaeicola	Phocaeicola vulgatus
+Ribosomal_L2_8091	99.6	Bacteria	Firmicutes	Bacilli	Lactobacillales	Enterococcaceae	Enterococcus	Enterococcus faecalis
+Ribosomal_L2_5822	99.1	Bacteria	Desulfobacterota	Desulfovibrionia	Desulfovibrionales	Desulfovibrionaceae	Bilophila	Bilophila wadsworthia
