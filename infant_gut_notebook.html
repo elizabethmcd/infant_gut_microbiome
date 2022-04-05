@@ -11,7 +11,7 @@
 
 <meta name="author" content="Elizabeth McDaniel" />
 
-<meta name="date" content="2022-03-31" />
+<meta name="date" content="2022-04-04" />
 
 <title>Infant Gut Microbiome Project Notebook</title>
 
@@ -365,7 +365,7 @@ pre code {
 
 <h1 class="title toc-ignore">Infant Gut Microbiome Project Notebook</h1>
 <h4 class="author">Elizabeth McDaniel</h4>
-<h4 class="date">2022-03-31</h4>
+<h4 class="date">2022-04-04</h4>
 
 </div>
 
@@ -376,16 +376,26 @@ the Infant Gut Microbiome</a>
 <ul>
 <li><a href="#initial-contigs-inspection">Initial Contigs
 Inspection</a></li>
-<li><a href="#read-coverage-inspection">Read Coverage
-Inspection</a></li>
 <li><a href="#functional-annotation">Functional Annotation</a></li>
+<li><a href="#exploring-transposases">Exploring Transposases</a></li>
 </ul></li>
 </ul>
 </div>
 
 <div id="transposons-in-the-infant-gut-microbiome" class="section level1">
 <h1>Transposons in the Infant Gut Microbiome</h1>
-<p>[summary of the project, sections]</p>
+<p>I hypothesized that transposons/transposases would be highly
+prevalent mobile elements in the infant gut microbiome, and could
+potentially facilitate inter-species horizontal gene transfer. I first
+performed an initial inspection of the contigs to look at the
+taxonomical makeup of the community and any possible contamination. I
+then performed functional annotation with the KofamKOALA and mobileOG
+databases to both annotate all proteins that could be annotated with the
+KEGG database and all mobile elements using the mobileOG curated
+database. To then look for putative transposase-mediated signatures of
+horizontal gene transfer, I identified transposases and performed BLASTP
+searches to find gene neighborhoods of 5-10 genes surrounding these
+transposases with homology to gene neighborhoods in other species.</p>
 <div id="initial-contigs-inspection" class="section level2">
 <h2>Initial Contigs Inspection</h2>
 <p>First I inspected the contigs to look at the data I was dealing
@@ -447,22 +457,20 @@ so now the contig names look like:</p>
 &gt;qb307082014_I_scaffold_1104
 &gt;qb307082014_I_scaffold_1110</code></pre>
 <p>I then generated a contigs database in Anvi’o with
-<code>anvi-gen-contigs-database -f infant-gut-contigs.fa -o contigs.db -n INFANTGUT -T 12</code>.
+<code>anvi-gen-contigs-database -f infant-gut-contigs.fa -o contigs.db -n INFANTGUT -T 4</code>.
 This will identify ORFs in contigs with prodigal, which produced:</p>
-<p><code>Result .......................................: Prodigal (v2.6.3) has identified 17152 genes.</code>
-in ~2 minutes.</p>
+<p><code>Result .......................................: Prodigal (v2.6.3) has identified 17152 genes.</code></p>
 <p>I then wanted to know the distribution of single copy core genes
 among these genomes, and what their taxonomy is. First I ran
-<code>anvi-run-hmms -c contigs.db --num-threads 12</code> which
+<code>anvi-run-hmms -c contigs.db --num-threads 4</code> which
 identifies sets of HMMs in the pre-made databases for
 <code>Ribosomal_RNA_16S, Ribosomal_RNA_5S, Ribosomal_RNA_28S, Protista_83, Ribosomal_RNA_12S, Archaea_76, Bacteria_71, Ribosomal_RNA_18S, Ribosomal_RNA_23S</code>.
 This pipeline can also use HMMs made from other sources, but the
 <code>Bacteria_71</code> and ribosomal sets will suffice for inspecting
-the contigs. This took less than 1 minute with 12 threads on a compute
-cluster.</p>
+the contigs.</p>
 <p>To then assess the taxonomy of these single copy core genes in the
 metagenome, I first ran
-<code>anvi-run-scg-taxonomy -c contigs.db --num-parallel-processes 12 --num-threads 12 --min-percent-identity 90 --all-hits-output-file scg-taxonomy.txt</code>.
+<code>anvi-run-scg-taxonomy -c contigs.db --num-threads 4 --min-percent-identity 90 --all-hits-output-file scg-taxonomy.txt</code>.
 This will return all taxonomy classifications to the single copy core
 genes with at least 90% identity based on the Genome Taxonomy Database
 (GTDB). This took less than 30 seconds with 12 threads. This output is
@@ -472,7 +480,7 @@ identity.</p>
 <p>I then used this information to assess the taxonomical composition of
 the entire metagenome based on the classification of a single copy core
 gene using:
-<code>anvi-estimate-scg-taxonomy -c contigs.db -T 12 --metagenome-mode -o infant-gut-tax.txt</code>
+<code>anvi-estimate-scg-taxonomy -c contigs.db -T 4 --metagenome-mode -o infant-gut-tax.txt</code>
 which will use one of the single copy core genes (ribosomal L2 in this
 case), which the output looks like (the file is also viewable in
 <code>results/infant-gut-tax.txt</code>):</p>
@@ -508,7 +516,7 @@ corresponding bins:</p>
 gene_calls &lt;- read.table(&quot;results/gene_calls.txt&quot;, header=TRUE, sep=&quot;\t&quot;) %&gt;% 
   select(gene_callers_id, contig)
 
-scaffold_to_bin &lt;- read.table(&quot;results/infant-gut.stb&quot;, col.names = c(&quot;contig&quot;, &quot;bin&quot;), sep=&quot;\t&quot;) %&gt;% 
+scaffold_to_bin &lt;- read.table(&quot;raw_data/infant-gut.stb&quot;, col.names = c(&quot;contig&quot;, &quot;bin&quot;), sep=&quot;\t&quot;) %&gt;% 
   mutate(contig = gsub(&quot;&gt;&quot;, &quot;&quot;, contig))
 
 # full table of gene accessions for each bin 
@@ -558,6 +566,36 @@ some redundancy of these genomes. The unknown genome only contains 4
 single copy core genes identified in this pipeline. This is a good
 check, as there are 71 single copy markers in the Bacteria_71 set, and
 they were all found within these sets of contigs.</p>
+<p>I then imported the HMM hits for the Archaea_76 set just to
+check:</p>
+<pre class="r"><code>hmm_hits_archaea &lt;- read.table(&quot;results/hmm-hits-archaea.txt&quot;, header=TRUE, sep=&quot;\t&quot;)
+
+hmm_table_archaea &lt;- left_join(hmm_hits_archaea, genes_table)</code></pre>
+<pre><code>## Joining, by = &quot;gene_callers_id&quot;</code></pre>
+<pre class="r"><code>hmm_table_archaea %&gt;% 
+  select(gene_name) %&gt;% 
+  unique() %&gt;% 
+  count()</code></pre>
+<pre><code>##    n
+## 1 42</code></pre>
+<pre class="r"><code>hmm_table_archaea %&gt;% 
+  group_by(bin) %&gt;% 
+  unique() %&gt;% 
+  count()</code></pre>
+<pre><code>## # A tibble: 5 × 2
+## # Groups:   bin [5]
+##   bin                                                n
+##   &lt;chr&gt;                                          &lt;int&gt;
+## 1 bin=0118A1023_Bacteroides_vulgatus-like_42_520    35
+## 2 bin=0118A1023_Citrobacter_koseri_53_430           35
+## 3 bin=0118A1023_Clostridium_difficile_28_5          42
+## 4 bin=0118A1023_Enterococcus_faecalis_36_53         39
+## 5 bin=0118A1023_UNK                                  3</code></pre>
+<p>Of the 76 total HMM markers for the archaea set, there are only 42
+unique hits among these contigs. The count for the unknown bin for the
+archaeal HMM hits are low as well (3 archaeal hits vs 4 bacterial hits),
+and are generally low for all genomes, so we can be confident that these
+aren’t archaeal genomes.</p>
 <p>I then wanted to compare the classification obtained through the
 Anvi’o workflow based on the taxonomy of the Ribosomal L2 gene and the
 given classification in the contigs file.</p>
@@ -591,7 +629,7 @@ differences in species names such as “Bacteroides vulgatus” and
 “Phocaeicola vulgatus” because of differences between the NCBI and GTDB
 taxonomy systems. Additionally, based on the classification of the
 Ribosomal L2 gene within the <code>0118A1023_UNK</code> bin that did not
-contain a classification, it is classified as
+contain a given classification in the contigs file, it is classified as
 <code>Bilophila wadsworthia</code> within the Desulfobacterota, which in
 the NCBI taxonomy roughly equates to the Deltaprotoebacteria which is
 split into multiple phyla in the GTDB.</p>
@@ -606,25 +644,257 @@ can tell that the 4 genomes besides the unknown/Desulfobacterota bin
 contain a high number of single copy core genes and are likely of higher
 quality. For now for downstream annotation and analysis we will keep the
 unknown/Desulfobacterota bin and take the results into account for the
-possible lower quality of this bin.</p>
+possible lower quality of this bin and can remove those results later if
+we aren’t confident in them.</p>
 <p>The correct and accurate analysis for this set of contigs would be to
 run GTDB-tk to confirm the classification and run checkM to assess
 completeness and contamination. However each of these tools requires a
 higher memory allocation and resources than quick checks with Anvi’o and
 for a quick spot check this analysis will suffice.</p>
 </div>
-<div id="read-coverage-inspection" class="section level2">
-<h2>Read Coverage Inspection</h2>
-</div>
 <div id="functional-annotation" class="section level2">
 <h2>Functional Annotation</h2>
-<p>Since the anvi’o pipeline already annotated ORFs with prodigal, we
+<p>Since the anvi’o pipeline already predicted ORFs with prodigal, we
 can export the proteins with
 <code>anvi-get-sequences-for-gene-calls -c contigs.db --get-aa-sequences -o infant-gut-proteins.faa</code>
-and then annotate using the KofamKOALA pipeline. This will annotate all
-proteins based on the KEGG database, from which I will then identify
-transposon families to investigate further, along with the gene
-neighborhoods/regions in which transposons are located.</p>
+and then perform functional annotation. First I will annotate with
+KofamKOALA, which will annotate all proteins based on the KEGG database.
+This is to generate general annotations mainly for the bacterial species
+for a general overview of functions and to inspect gene neighborhoods in
+which mobile regions are found. Since the KofamKOALA online portal only
+takes 10,000 proteins for a single job, I split the FASTA file into two
+containing each about 8,500 proteins for all genomes, and then combined
+the results back together. The KofamKOALA pipeline can also be run on a
+personal laptop but the database is quite large and requires more
+threads, and can also be installed on a larger compute cluster for
+larger sets of annotation searches. The KofamKOALA pipeline then returns
+all annotation hits based on HMMs for each gene, and then hits can be
+filtered for significant annotations based on those that were found
+above the given threshold cutoff (TC) for the HMM. I then sorted the
+file so that only the top hit for that protein was kept so there wasn’t
+duplicate hits for a single protein to deal with using
+<code>sort -u -k1,1 sig_kofam_annotations_modf.txt &gt; sig_kofam_annotations_modf_nodup.txt</code>.</p>
+<pre class="r"><code>kofam_annotations &lt;- read.table(&quot;results/sig_kofam_annotations_modf_nodup.txt&quot;, col.names = c(&quot;gene_callers_id&quot;, &quot;KO&quot;, &quot;TC&quot;, &quot;score&quot;, &quot;Evalue&quot;, &quot;annotation&quot;), sep=&quot;\t&quot;) 
+
+kofam_annotations_bins &lt;- left_join(kofam_annotations, genes_table)</code></pre>
+<pre><code>## Joining, by = &quot;gene_callers_id&quot;</code></pre>
+<pre class="r"><code>kofam_annotations_bins %&gt;% 
+  group_by(bin) %&gt;% 
+  count() %&gt;% 
+  arrange(desc(n))</code></pre>
+<pre><code>## # A tibble: 7 × 2
+## # Groups:   bin [7]
+##   bin                                                n
+##   &lt;chr&gt;                                          &lt;int&gt;
+## 1 bin=0118A1023_Citrobacter_koseri_53_430         1552
+## 2 bin=0118A1023_Clostridium_difficile_28_5        1157
+## 3 bin=0118A1023_Bacteroides_vulgatus-like_42_520   541
+## 4 bin=0118A1023_Enterococcus_faecalis_36_53        500
+## 5 bin=0118A1023_UNK                                 32
+## 6 bin=0118A1023_Proteobacteria_phage                 2
+## 7 bin=0118A1023_Enterococcus_faecalis_phage          1</code></pre>
+<p>From this we can see that the KofamKOALA annotation pipeline
+annotated above 1000 proteins in the Citrobacter and C. diff genomes,
+only about 500 in the B. vulgatis and E. faecalis genomes, and very few
+proteins in the unknown/Desulfobacterota genomes and the two phage
+genomes. With the combined results of the low single copy core genes
+detected in the unknown/Desulfobaterota genome and the very few
+annotations detected, I would filter out these scaffolds from downstream
+results since this is likely contamination or a genome that was not
+assembled well.</p>
+<p>I then used the mobileOG database to annotate mobile elements in all
+genomes, which is described in the <em>bioRxiv</em> preprint by <a href="https://www.biorxiv.org/content/10.1101/2021.08.27.457951v1.full">Brown
+et al. 2021</a>. This database is an extensive collection of mobile
+elements that was created by merging 7 other publicly available
+databases:</p>
+<ol style="list-style-type: decimal">
+<li>ICEBerg 2.0 (ICEs, AICEs, CIMEs, IMEs)</li>
+<li>COMPASS (plasmids)</li>
+<li>NCBI Plasmid RefSeq (plasmids)</li>
+<li>Gut Phage Database (phages)</li>
+<li>ACLAME (various)</li>
+<li>immedb (integrative elements)</li>
+<li>Prokaryotic viral orthologous groups (pVOG)</li>
+</ol>
+<p>Following their instructions in the mobileOG <a href="https://github.com/clb21565/mobileOG-db">Github repository</a>, I
+first made a DIAMOND database of the mobileOG collection of
+proteins:</p>
+<p><code>diamond makedb --in mobileOG-db-beatrix-1.5.All.faa -d mobileOG-db-beatrix-1.5.All.dmnd</code></p>
+<p>Then compared the infant gut proteins to the mobileOG database
+with:</p>
+<p><code>diamond blastp -q ../raw_data/infant-gut-proteins.faa --db mobileOG-db-beatrix-1.5.All.dmnd -o ../results/infant-gut-mobileOG.tsv -k 15 -e 1e-20 --query-cover 90 --id 90</code></p>
+<p>The mobileOG database is provided as a large CSV which I have
+reformatted as a smaller TSV containing the necessary columns to obtain
+annotation information. The functions for each mobileOG database hit can
+then be matched in the output file. The output file for the infant gut
+proteins produced 4,392 annotations that hit above the cutoffs, from
+which I filtered the results with
+<code>sort -u -k1,1 infant-gut-mobileOG.tsv</code> to only pick the
+highest hit for a protein so a given protein didn’t have duplicate
+annotations to simplify the analysis.</p>
+<pre class="r"><code># read in the mobileOGdb file
+mobileOGdb &lt;- as.data.frame(readLines(&quot;beatrix-1-5_v1_all/mobileOG-db-beatrix-1.5.All.modf.tsv&quot;))
+colnames(mobileOGdb) &lt;- c(&quot;Description&quot;)
+mobileOGdb_table &lt;- mobileOGdb %&gt;% 
+  separate(Description, into=c(&quot;Entry&quot;, &quot;Cluster&quot;, &quot;Name&quot;, &quot;Annotation&quot;), sep=&quot;\t&quot;)
+
+# import the DIAMOND tsv output for infant gut proteins against mobileOGdb 
+infant_gut_mobileOGdb &lt;- read.table(&quot;results/infant-gut-mobileOG.filtered.tsv&quot;, col.names = c(&quot;gene_callers_id&quot;, &quot;mobileOGdb_hit&quot;, &quot;pident&quot;, &quot;length&quot;, &quot;mismatch&quot;, &quot;gapopen&quot;, &quot;qstart&quot;, &quot;qend&quot;, &quot;sstart&quot;, &quot;send&quot;, &quot;evalue&quot;, &quot;bitscore&quot;)) %&gt;% 
+  separate(mobileOGdb_hit, into=c(&quot;Entry&quot;), sep=&quot;\\|&quot;)</code></pre>
+<pre><code>## Warning: Expected 1 pieces. Additional pieces discarded in 902 rows [1, 2, 3, 4,
+## 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].</code></pre>
+<pre class="r"><code># join the infant gut hits with the database hits 
+infant_gut_mobileOGdb_hits &lt;- left_join(infant_gut_mobileOGdb, mobileOGdb_table)</code></pre>
+<pre><code>## Joining, by = &quot;Entry&quot;</code></pre>
+<pre class="r"><code># join with the genes/bins table and filter out annotations with NA descriptions
+infant_gut_mobileOGdb_hits_bins &lt;- left_join(infant_gut_mobileOGdb_hits, genes_table) %&gt;% 
+  filter(Name != &quot;NA:Keyword&quot;) %&gt;% 
+  filter(bin != &quot;bin=0118A1023_UNK&quot;) # also filter out any hits to the unknown bin scaffolds </code></pre>
+<pre><code>## Joining, by = &quot;gene_callers_id&quot;</code></pre>
+<p>With the above filtering steps and removing hits to the “Unknown” bin
+scaffolds since the single copy core analysis and preliminary
+annotations showed this is probably a low quality bin, 524 mobile
+elements were annotated among the scaffolds. Then checking the
+annotation breakdown for each bin:</p>
+<pre class="r"><code>infant_gut_mobileOGdb_hits_bins %&gt;% 
+  group_by(bin) %&gt;% 
+  count() %&gt;% 
+  arrange(desc(n))</code></pre>
+<pre><code>## # A tibble: 7 × 2
+## # Groups:   bin [7]
+##   bin                                                n
+##   &lt;chr&gt;                                          &lt;int&gt;
+## 1 bin=0118A1023_Bacteroides_vulgatus-like_42_520   191
+## 2 bin=0118A1023_Citrobacter_koseri_53_430          162
+## 3 bin=0118A1023_Enterococcus_faecalis_36_53         97
+## 4 bin=0118A1023_Clostridium_difficile_28_5          56
+## 5 bin=0118A1023_Enterococcus_faecalis_phage          7
+## 6 bin=0118A1023_Klebsiella_pneumoniae_plasmid        3
+## 7 bin=0118A1023_Proteobacteria_phage                 1</code></pre>
+<p>The B. vulgatis genome had nearly 200 mobile elements annotated, the
+C. koseri genome 162, the E. faecalis 97, the C. diff 56, and the E.
+faecalis phage 7 elements annotated. The Klebsiella plasmid had very few
+mobile elements annotated, and the Proteobacteria phage only 1. However
+this pipeline picked up more annotations in total for the E. faecalis
+phage, as the KofamKOALA pipeline didn’t functionally annotate any
+proteins above the threshold cutoffs for this phage. The pipeline could
+be altered by adjusting the e-values, percent identity, and coverage
+cutoffs for the DIAMOND blastp job. But for a first glance these higher
+cutoff values and filtering parameters will suffice.</p>
+</div>
+<div id="exploring-transposases" class="section level2">
+<h2>Exploring Transposases</h2>
+<pre class="r"><code>infant_gut_mobileOGdb_hits_bins %&gt;% 
+  filter(str_detect(Annotation, &#39;Transposase|transposase|transposon&#39;)) %&gt;% 
+  group_by(bin) %&gt;% 
+  count() %&gt;% 
+  arrange(desc(n))</code></pre>
+<pre><code>## # A tibble: 4 × 2
+## # Groups:   bin [4]
+##   bin                                                n
+##   &lt;chr&gt;                                          &lt;int&gt;
+## 1 bin=0118A1023_Bacteroides_vulgatus-like_42_520    19
+## 2 bin=0118A1023_Clostridium_difficile_28_5           7
+## 3 bin=0118A1023_Enterococcus_faecalis_36_53          6
+## 4 bin=0118A1023_Citrobacter_koseri_53_430            4</code></pre>
+<p>Based on these results, there are ~20 transposases in the B. vulgatis
+genome, and a handful in the other 3 bacterial species.</p>
+<pre class="r"><code>transposase_table &lt;- infant_gut_mobileOGdb_hits_bins %&gt;% 
+  filter(str_detect(Annotation, &#39;Transposase|transposase|transposon&#39;)) %&gt;% 
+  select(gene_callers_id, Entry, Name, Annotation, contig, bin)
+
+transposase_gene_ids &lt;- transposase_table %&gt;% 
+  pull(gene_callers_id)
+
+write.table(transposase_gene_ids, &quot;results/transposase_gene_ids.txt&quot;, col.names = FALSE, quote = FALSE, row.names = FALSE)</code></pre>
+<p>From the anvi’o pipeline, we can also export the gene calls from
+prodigal to have the ORFs to match up to the proteins for performing
+BLAST comparisons of regions where transposons/integrons are located
+with
+<code>anvi-get-sequences-for-gene-calls -c contigs.db -o infant-gut-orfs.ffn</code>.
+Then we can locate the gene caller ID for each transposase and
+investigate if the genes flanking the transposase shares homology with
+either species in the infant gut community.</p>
+<p>From the list of gene IDs for the transposases, we first retrieve the
+coding regions for the genes surrounding each transposase. For this
+exercise 10-20 genes will suffice to see if regions in other species
+match homology to a given transposase neighborhood. For each transposon
+gene ID exported in the <code>transposase_gene_ids.txt</code> file, we
+can retrieve the protein sequence for that transposase and the proteins
+for the genes that are 10 genes upstream and downstream of the
+transposase to see if there is homology to regions in other genomes.
+Then we create DIAMOND databases for each set of transposase
+neighborhoods, and then search those databases against the full set of
+proteins in the infant gut metagenome. We can get a quick look at this
+to see if there are any low-hanging fruit with a couple bash for
+loops:</p>
+<p>First retrieve the protein sequences for the transposases and
+surrounding proteins with
+<code>for line in $(cat transposase_gene_ids.txt); do grep -A 21 -B 21 -w $line ../raw_data/infant-gut-proteins.faa &gt; transposases/transposases-$line.txt; done</code></p>
+<p>Then create DIAMOND databases for each set of proteins with
+<code>for file in *.txt; do name=$(basename $file .txt); diamond makedb --in $file --d $name.dmnd; done</code></p>
+<p>Then for each DIAMOND database search against the infant gut
+proteins. For this since we are searching against proteins the search
+parameters will be a little relaxed. We could also use conventional
+BLAST to perform blastn searches of the coding regions of the
+transposase neighborhoods, but DIAMOND searches against protein
+databases and will suffice for a quick look. To do this for each DIAMOND
+database:
+<code>for file in *.dmnd; do name=$(basename $file .dmnd); diamond blastp -q ../../raw_data/infant-gut-proteins.faa --db $file -o $name.tsv -k 15 --id 70 --query-cover 85 -e 1e-20; done</code></p>
+<p>Then I inspected the output files for proteins that were in the
+genomes of species other than the query transposase. Most of the results
+identified homologous regions of the same genome that also had
+transposase hits, such as a C. diff transposase query hitting other
+transposases and homologous gene neighborhoods within the C. diff
+genome. I was specifically interested in inter-species signatures of
+transposase-mediated horizontal gene transfer, so I was looking for
+regions in other species.</p>
+<p>I found one example of a C. diff transposase (gene caller ID 3413,
+annotated as a Transposase) and the surrounding gene neighborhood
+matching homology to a transposase and surrounding gene neighborhood in
+E. faecalis (transposase gene caller ID 8417). I then retrieved the
+coding regions surrounding these transposases to inspect the annotations
+and homology of these gene neighborhoods further.</p>
+<p>To prepare the files, first I retrieved the coding regions of the 10
+genes downstream and upstream of the transposase of interest in the E.
+facecalis and C. diff genomes:</p>
+<p><code>grep -A 21 -B 20 -w &#39;8147&#39; infant-gut-orfs.ffn &gt; ../results/Efaecalis-transposon-gene-neighborhood.ffn</code></p>
+<p><code>grep -A 21 -B 20 -w &#39;3413&#39; infant-gut-orfs.ffn &gt; ../results/Cdiff-3413-transp-neighborhood.ffn</code></p>
+<p>I’m using the python program <code>clinker</code> to analyze gene
+clusters. I installed this locally in a conda environment using
+<code>conda create -n clinker -c conda-forge -c bioconda clinker-py</code>
+and activated the environment. For this program, the coding regions need
+to correspond to a GFF3 file, which I can retrieve from the Anvi’o gene
+calls. With the corresponding GFF3 and FASTA files for the scaffolds on
+which these sequences are on, then we run <code>clinker *.gff</code> and
+this program will perform clustering and alignment of the protein
+sequences. It gives arbitrary string names to the names of genes with an
+alignment greater than 30%, and this aligns well with the previous
+DIAMOND blastp results:</p>
+<pre><code>Query                                 Target                                Identity  Similarity
+331e65bf-8771-4662-893f-53e0b3dd9c86  03fd2a86-de61-4ce7-8454-dc0b6f841b55  0.62      0.75
+2c673e56-4254-4d74-a59e-0bb29786dd98  eff1c082-5f9d-40e9-9206-e38f3083afa9  0.78      0.90
+4a2a10c0-67d1-4828-ad08-fc3e4efef45a  b17ed0ec-bb3c-4f03-a501-46797e4d67a1  0.65      0.79
+19a1db67-2887-4575-8c7a-83ec6cd085de  4ae47710-1c44-4456-a257-406afd9c4782  0.45      0.55
+12c261ca-215a-408d-913b-a80154151620  bc13eb41-b909-43d3-b786-443f717776e0  0.71      0.81
+99f8d0b1-1967-4a10-97b5-7cdf8bd27a93  c885d235-c9de-4ddf-9a0e-cf8374be2794  0.52      0.69
+35c1f89c-a77d-4f27-b214-c9e3eee4bf66  435c76b3-b64e-461a-95d1-c126992ca69a  0.66      0.80
+59a8d91d-7591-4abe-b0da-de4abaa05600  283e85cf-f0bb-4510-aede-4bc74d4ff1b4  0.50      0.62
+ffa0a000-abc2-4f8c-b73f-1bf006299def  ceac2ef0-e4a0-44e7-9f0c-2a48a8c5270b  0.81      0.90
+72f03c29-170a-4b63-98a1-a99b74a830d5  fc34858b-8dfa-4b35-9a2a-c2f0a1b7f60a  0.71      0.84
+5b3dc4ae-6b41-49d9-a560-27c02802b00e  e0e57067-9a2f-4f6f-b025-c1f1c393aba9  0.62      0.78
+b7865adb-fe84-4265-947f-7e0fec681ae0  538466c3-93f3-48ba-a1b2-de963161d25e  0.86      0.96
+29721566-b1fa-4dcc-874e-87bccb7e896d  7eeab21b-7fc2-4be4-9aec-9dcaa0eb8f64  0.60      0.70
+bb70f340-eb29-4050-b3a4-d2aab2a57a99  9777b854-3acc-4e18-86a1-8ba515c61332  0.66      0.79
+123469d5-945b-40e0-9b17-96e7658221d2  a9297182-60db-45b1-8926-569332ea02f5  0.77      0.87
+e4ebf843-652f-4a4b-b58b-dae95914f41e  a009c36d-fd89-4926-a80b-8583fa6704be  0.80      0.90</code></pre>
+<p>I exported the SVG output into Illustrator so I could focus on the
+region of interest since clinker requires inputting entire scaffolds for
+comparison, and only one small region of one of the scaffolds shares
+similarity with the other scaffold. Then I looked at the KofamKOALA and
+mobileOG annotations for these gene neighborhoods to see if these
+databases could help with functional annotation as well as having the
+homology information.</p>
 </div>
 </div>
 
